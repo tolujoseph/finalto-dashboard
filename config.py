@@ -45,8 +45,8 @@ TRADE_SIZE_STEP = 10_000   # sizes will be multiples of this
 
 # --- Timing configuration ---
 PRICE_UPDATE_INTERVAL = 1.0      # seconds between price updates
-TRADE_INTERVAL_MIN = 1.0         # minimum seconds between client trades
-TRADE_INTERVAL_MAX = 5.0         # maximum seconds between client trades
+TRADE_INTERVAL_MIN = 5.0         # minimum seconds between client trades
+TRADE_INTERVAL_MAX = 15.0         # maximum seconds between client trades
 DASHBOARD_UPDATE_INTERVAL = 1000 # milliseconds between dashboard refreshes
 
 # --- Random walk configuration ---
