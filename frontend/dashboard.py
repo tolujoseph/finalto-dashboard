@@ -143,7 +143,7 @@ def _dark_layout(title: str) -> dict:
         },
         "margin": {"t": 50, "b": 40, "l": 50, "r": 20},
         "legend": {"font": {"color": "#ffffff"}},
-        "showlegend": True,
+        "showlegend": False,
     }
 
 
@@ -308,7 +308,7 @@ def update_pnl_curve(_):
         hovertemplate="Time: %{x}<br>Revenue: $%{y:,.2f}<extra></extra>",
     ))
 
-    fig.update_layout(**_dark_layout("PnL Curve Over Time"))
+    fig.update_layout(**_dark_layout("PnL Curve Over Time"), showlegend=True)
     return fig
 
 
