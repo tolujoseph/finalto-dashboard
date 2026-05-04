@@ -335,7 +335,7 @@ def update_positions_chart(_):
         x=instruments,
         y=net_sizes,
         marker_color=colours,
-        name="Net Position",
+        showlegend=False,
         hovertemplate="Instrument: %{x}<br>Net Size: %{y:,.0f}<extra></extra>",
     ))
 
@@ -365,7 +365,7 @@ def update_client_yield_chart(_):
         x=clients,
         y=yields,
         marker_color="#4CAF50",
-        name="Spread Revenue",
+        showlegend=False,
         hovertemplate="Client: %{x}<br>Yield: $%{y:,.2f}<extra></extra>",
     ))
 
@@ -396,7 +396,7 @@ def update_pnl_attribution_chart(_):
         x=instruments,
         y=pnls,
         marker_color=colours,
-        name="PnL",
+        showlegend=False,
         hovertemplate="Instrument: %{x}<br>PnL: $%{y:,.2f}<extra></extra>",
     ))
 
