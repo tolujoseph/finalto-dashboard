@@ -25,27 +25,21 @@ from config import (
 )
 
 # --- Shared state ---
-# Latest data received from the WebSocket server
-# Updated by the WebSocket listener thread
 latest_data = {
     "prices": {},
     "book": {},
 }
 
 
-# --- WebSocket listener ---
 def _start_websocket_listener():
     """
     Starts a background thread that maintains a WebSocket connection
     to the Quart server and updates latest_data as messages arrive.
-
-    Runs in a separate thread so it doesn't block the Dash app.
     Automatically reconnects if the connection drops.
     """
 
     async def _listen():
         uri = f"ws://localhost:{WEBSOCKET_PORT}/ws"
-
         while True:
             try:
                 async with websockets.connect(uri) as ws:
@@ -55,7 +49,6 @@ def _start_websocket_listener():
                         if data.get("type") == "update":
                             latest_data["prices"] = data.get("prices", {})
                             latest_data["book"] = data.get("book", {})
-
             except Exception as e:
                 print(f"[Dashboard] WebSocket error: {e}. Reconnecting in 2s...")
                 await asyncio.sleep(2)
@@ -66,8 +59,6 @@ def _start_websocket_listener():
     thread = threading.Thread(target=_run, daemon=True)
     thread.start()
 
-
-# --- Helper functions ---
 
 def _summary_card(card_id: str, label: str) -> html.Div:
     """
@@ -344,6 +335,7 @@ def update_positions_chart(_):
         x=instruments,
         y=net_sizes,
         marker_color=colours,
+        name="Net Position",
         hovertemplate="Instrument: %{x}<br>Net Size: %{y:,.0f}<extra></extra>",
     ))
 
@@ -373,6 +365,7 @@ def update_client_yield_chart(_):
         x=clients,
         y=yields,
         marker_color="#4CAF50",
+        name="Spread Revenue",
         hovertemplate="Client: %{x}<br>Yield: $%{y:,.2f}<extra></extra>",
     ))
 
@@ -403,6 +396,7 @@ def update_pnl_attribution_chart(_):
         x=instruments,
         y=pnls,
         marker_color=colours,
+        name="PnL",
         hovertemplate="Instrument: %{x}<br>PnL: $%{y:,.2f}<extra></extra>",
     ))
 
