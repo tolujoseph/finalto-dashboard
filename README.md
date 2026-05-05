@@ -87,20 +87,34 @@ Restart your terminal after installation.
 # Clone the repository
 git clone https://github.com/YOUR_USERNAME/finalto-dashboard.git
 cd finalto-dashboard
+```
 
-# Install all dependencies
-uv sync
+**Create and activate the virtual environment:**
 
-# Activate the virtual environment
-# Windows:
+Windows:
+```powershell
+uv venv
 .venv\Scripts\activate
-# Mac/Linux:
+```
+
+Mac/Linux:
+```bash
+uv venv
 source .venv/bin/activate
+```
+
+You should see `(finalto-dashboard)` appear at the start of your terminal prompt confirming the environment is active.
+
+**Install all dependencies:**
+```bash
+uv sync
 ```
 
 ---
 
 ## Running the Application
+
+With the virtual environment active, run:
 
 ```bash
 python main.py
