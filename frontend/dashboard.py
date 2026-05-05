@@ -15,6 +15,7 @@ real time updates via an interval component.
 
 import json
 import asyncio
+import logging
 import threading
 import websockets
 from dash import Dash, html, dcc, Input, Output, callback
@@ -388,9 +389,14 @@ def create_dashboard() -> Dash:
     """
     Initialises the WebSocket listener and returns the Dash app.
 
+    Suppresses Flask and Werkzeug error logging to prevent cosmetic
+    startup race condition errors from appearing in the terminal.
+
     Returns:
         Configured Dash app ready to run.
     """
     _start_websocket_listener()
     app.server.config["PROPAGATE_EXCEPTIONS"] = False
+    logging.getLogger("werkzeug").setLevel(logging.ERROR)
+    logging.getLogger("flask.app").setLevel(logging.CRITICAL)
     return app
