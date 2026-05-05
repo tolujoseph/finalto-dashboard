@@ -59,13 +59,20 @@ Restart your terminal after installation, then verify:
 uv --version
 ```
 
+**Mac/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Restart your terminal after installation.
+
 ---
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/tolujoseph/finalto-dashboard.git
+git clone https://github.com/YOUR_USERNAME/finalto-dashboard.git
 cd finalto-dashboard
 
 # Install all dependencies
@@ -74,7 +81,8 @@ uv sync
 # Activate the virtual environment
 # Windows:
 .venv\Scripts\activate
-
+# Mac/Linux:
+source .venv/bin/activate
 ```
 
 ---
