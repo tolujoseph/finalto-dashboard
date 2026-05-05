@@ -30,7 +30,24 @@ def _run_dashboard():
     Runs the Plotly Dash dashboard in a completely separate process.
     Isolated from the main process so Flask's signal handling
     cannot interfere with our Ctrl+C handler.
+
+    Stderr is suppressed for the first 3 seconds to hide the cosmetic
+    startup race condition errors caused by the browser firing interval
+    requests before callbacks finish registering in the spawned process.
     """
+    import sys
+    import time
+
+    # Suppress stderr for 3 seconds to hide Dash startup race errors
+    _real_stderr = sys.stderr
+    sys.stderr = open(os.devnull, 'w')
+
+    def _restore():
+        time.sleep(3)
+        sys.stderr = _real_stderr
+
+    threading.Thread(target=_restore, daemon=True).start()
+
     from frontend.dashboard import create_dashboard
     dashboard = create_dashboard()
     print(f"[Main] Starting dashboard on http://localhost:{DASHBOARD_PORT}")
@@ -113,7 +130,6 @@ def main():
     def _signal_handler(signum, frame):
         print("\n[Main] Shutting down gracefully...")
         loop.call_soon_threadsafe(shutdown_event.set)
-        # Force exit after 2 seconds in case hypercorn hangs
         threading.Timer(2.0, lambda: os._exit(0)).start()
 
     signal.signal(signal.SIGINT, _signal_handler)

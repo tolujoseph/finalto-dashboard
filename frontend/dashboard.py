@@ -25,6 +25,11 @@ from config import (
     DASHBOARD_UPDATE_INTERVAL,
 )
 
+# Suppress Flask, Werkzeug and Dash startup noise and race condition errors
+logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
+logging.getLogger("flask.app").setLevel(logging.CRITICAL)
+logging.getLogger("dash").setLevel(logging.CRITICAL)
+
 # --- Shared state ---
 latest_data = {
     "prices": {},
@@ -121,6 +126,10 @@ def _dark_layout(title: str) -> dict:
 
 # --- Dash app ---
 app = Dash(__name__, title="Finalto Risk Dashboard")
+
+@app.server.errorhandler(500)
+def _handle_500(e):
+    return "", 500
 
 app.layout = html.Div([
 
@@ -389,14 +398,9 @@ def create_dashboard() -> Dash:
     """
     Initialises the WebSocket listener and returns the Dash app.
 
-    Suppresses Flask and Werkzeug error logging to prevent cosmetic
-    startup race condition errors from appearing in the terminal.
-
     Returns:
         Configured Dash app ready to run.
     """
     _start_websocket_listener()
     app.server.config["PROPAGATE_EXCEPTIONS"] = False
-    logging.getLogger("werkzeug").setLevel(logging.ERROR)
-    logging.getLogger("flask.app").setLevel(logging.CRITICAL)
     return app
