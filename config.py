@@ -1,7 +1,7 @@
 """
 The Control Panel for the Finalto Risk Management dashboard simulator.
 
-This is where all the paramters are defined so you can configure the system to operate the way you need.
+This is where all the parameters are defined so you can configure the system to operate the way you need.
 """
 
 # --- Instruments ---
@@ -44,7 +44,7 @@ TRADE_SIZE_STEP = 10_000   # sizes will be multiples of this
 # --- Timing configuration ---
 PRICE_UPDATE_INTERVAL = 1.0      # seconds between price updates
 TRADE_INTERVAL_MIN = 5.0         # minimum seconds between client trades
-TRADE_INTERVAL_MAX = 15.0         # maximum seconds between client trades
+TRADE_INTERVAL_MAX = 15.0        # maximum seconds between client trades
 DASHBOARD_UPDATE_INTERVAL = 1000 # milliseconds between dashboard refreshes
 
 # --- Random walk configuration ---
