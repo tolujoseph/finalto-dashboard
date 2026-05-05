@@ -26,6 +26,19 @@ Data flows through the system in a single pipeline:
 - `backend/server.py` — Quart WebSocket server streaming data to dashboard
 - `frontend/dashboard.py` — Plotly Dash real-time dashboard
 
+
+## Testing & Stress Testing
+
+The dashboard has been validated under a range of conditions including extended
+runs, scaled client counts, high frequency trading, and browser reconnection.
+
+Full test results and methodology are documented in [TESTS.md](TESTS.md).
+
+Key findings:
+- Stable memory usage (~116–128 MB) regardless of client count
+- CPU usage below 2% even under high frequency stress conditions
+- Scales from 5 to 20+ clients with no code changes — just update `config.py`
+- WebSocket reconnects automatically if the browser is closed and reopened
 ---
 
 ## Technology Choices
