@@ -61,16 +61,6 @@ def _start_websocket_listener():
 
 
 def _summary_card(card_id: str, label: str) -> html.Div:
-    """
-    Creates a summary metric card for the top row.
-
-    Args:
-        card_id: The HTML element ID for the value display.
-        label: The human readable label for this metric.
-
-    Returns:
-        A Dash html.Div styled as a metric card.
-    """
     return html.Div([
         html.P(label, style={
             "color": "#aaaaaa",
@@ -94,15 +84,6 @@ def _summary_card(card_id: str, label: str) -> html.Div:
 
 
 def _empty_figure(title: str) -> go.Figure:
-    """
-    Returns an empty dark themed figure with a waiting message.
-
-    Args:
-        title: Chart title to display.
-
-    Returns:
-        Empty Plotly figure with dark theme.
-    """
     fig = go.Figure()
     fig.update_layout(
         **_dark_layout(title),
@@ -116,15 +97,6 @@ def _empty_figure(title: str) -> go.Figure:
 
 
 def _dark_layout(title: str) -> dict:
-    """
-    Returns a consistent dark theme layout for all charts.
-
-    Args:
-        title: Chart title.
-
-    Returns:
-        Dictionary of Plotly layout properties.
-    """
     return {
         "title": {
             "text": title,
@@ -151,7 +123,6 @@ app = Dash(__name__, title="Finalto Risk Dashboard")
 
 app.layout = html.Div([
 
-    # Header
     html.Div([
         html.H1("Finalto Risk Management Dashboard",
                 style={"color": "#ffffff", "margin": "0", "fontSize": "24px"}),
@@ -163,10 +134,8 @@ app.layout = html.Div([
         "borderBottom": "2px solid #16213e",
     }),
 
-    # Main content
     html.Div([
 
-        # Row 1 - Summary cards
         html.Div([
             _summary_card("total-pnl", "Total PnL"),
             _summary_card("unrealised-pnl", "Unrealised PnL"),
@@ -174,7 +143,6 @@ app.layout = html.Div([
             _summary_card("spread-revenue", "Spread Revenue"),
         ], style={"display": "flex", "gap": "16px", "marginBottom": "24px"}),
 
-        # Row 2 - PnL curve (full width)
         html.Div([
             dcc.Graph(id="pnl-curve", style={"height": "300px"}),
         ], style={
@@ -184,7 +152,6 @@ app.layout = html.Div([
             "marginBottom": "24px",
         }),
 
-        # Row 3 - Positions and Client yield side by side
         html.Div([
             html.Div([
                 dcc.Graph(id="positions-chart", style={"height": "280px"}),
@@ -204,7 +171,6 @@ app.layout = html.Div([
             }),
         ], style={"display": "flex", "gap": "16px", "marginBottom": "24px"}),
 
-        # Row 4 - PnL attribution and live prices side by side
         html.Div([
             html.Div([
                 dcc.Graph(id="pnl-attribution-chart", style={"height": "280px"}),
@@ -229,11 +195,11 @@ app.layout = html.Div([
 
     ], style={"padding": "24px", "backgroundColor": "#0f3460", "minHeight": "100vh"}),
 
-    # Interval component - triggers callbacks every second
     dcc.Interval(
         id="interval",
         interval=DASHBOARD_UPDATE_INTERVAL,
         n_intervals=0,
+        disabled=False,
     ),
 
 ], style={"fontFamily": "Arial, sans-serif", "backgroundColor": "#0f3460"})
@@ -247,19 +213,16 @@ app.layout = html.Div([
     Output("realised-pnl", "children"),
     Output("spread-revenue", "children"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_summary_cards(_):
-    """Update the four summary metric cards."""
     book = latest_data.get("book", {})
     if not book:
         return "—", "—", "—", "—"
 
     def _fmt(value: float) -> html.Span:
         colour = "#4CAF50" if value >= 0 else "#e94560"
-        return html.Span(
-            f"${value:,.2f}",
-            style={"color": colour}
-        )
+        return html.Span(f"${value:,.2f}", style={"color": colour})
 
     return (
         _fmt(book.get("total_pnl", 0)),
@@ -273,12 +236,9 @@ def update_summary_cards(_):
 @callback(
     Output("pnl-curve", "figure"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_pnl_curve(_):
-    """
-    Updates the PnL curve chart with historical data.
-    Shows total PnL and spread revenue over time.
-    """
     book = latest_data.get("book", {})
     history = book.get("pnl_history", [])
 
@@ -290,7 +250,6 @@ def update_pnl_curve(_):
     spread_values = [h["total_spread_revenue"] for h in history]
 
     fig = go.Figure()
-
     fig.add_trace(go.Scatter(
         x=timestamps,
         y=pnl_values,
@@ -298,7 +257,6 @@ def update_pnl_curve(_):
         line=dict(color="#e94560", width=2),
         hovertemplate="Time: %{x}<br>PnL: $%{y:,.2f}<extra></extra>",
     ))
-
     fig.add_trace(go.Scatter(
         x=timestamps,
         y=spread_values,
@@ -306,7 +264,6 @@ def update_pnl_curve(_):
         line=dict(color="#4CAF50", width=2, dash="dash"),
         hovertemplate="Time: %{x}<br>Revenue: $%{y:,.2f}<extra></extra>",
     ))
-
     fig.update_layout(**_dark_layout("PnL Curve Over Time"))
     fig.update_layout(showlegend=True)
     return fig
@@ -315,12 +272,9 @@ def update_pnl_curve(_):
 @callback(
     Output("positions-chart", "figure"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_positions_chart(_):
-    """
-    Updates the net position bar chart.
-    Green bars = long positions, red bars = short positions.
-    """
     book = latest_data.get("book", {})
     positions = book.get("positions", {})
 
@@ -338,7 +292,6 @@ def update_positions_chart(_):
         showlegend=False,
         hovertemplate="Instrument: %{x}<br>Net Size: %{y:,.0f}<extra></extra>",
     ))
-
     fig.update_layout(**_dark_layout("Net Positions by Instrument"))
     return fig
 
@@ -346,12 +299,9 @@ def update_positions_chart(_):
 @callback(
     Output("client-yield-chart", "figure"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_client_yield_chart(_):
-    """
-    Updates the client yield bar chart showing spread
-    revenue earned from each client.
-    """
     book = latest_data.get("book", {})
     client_yield = book.get("client_yield", {})
 
@@ -368,7 +318,6 @@ def update_client_yield_chart(_):
         showlegend=False,
         hovertemplate="Client: %{x}<br>Yield: $%{y:,.2f}<extra></extra>",
     ))
-
     fig.update_layout(**_dark_layout("Client Yield (Spread Revenue)"))
     return fig
 
@@ -376,12 +325,9 @@ def update_client_yield_chart(_):
 @callback(
     Output("pnl-attribution-chart", "figure"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_pnl_attribution_chart(_):
-    """
-    Updates the PnL attribution chart showing total PnL
-    contribution from each instrument.
-    """
     book = latest_data.get("book", {})
     positions = book.get("positions", {})
 
@@ -399,7 +345,6 @@ def update_pnl_attribution_chart(_):
         showlegend=False,
         hovertemplate="Instrument: %{x}<br>PnL: $%{y:,.2f}<extra></extra>",
     ))
-
     fig.update_layout(**_dark_layout("PnL Attribution by Instrument"))
     return fig
 
@@ -407,63 +352,34 @@ def update_pnl_attribution_chart(_):
 @callback(
     Output("price-table", "children"),
     Input("interval", "n_intervals"),
+    prevent_initial_call=True,
 )
 def update_price_table(_):
-    """
-    Updates the live price table showing current
-    bid/ask for all instruments.
-    """
     prices = latest_data.get("prices", {})
 
     if not prices:
-        return html.P("Waiting for prices...",
-                      style={"color": "#aaaaaa"})
+        return html.P("Waiting for prices...", style={"color": "#aaaaaa"})
 
     header = html.Div([
-        html.Span("Pair", style={
-            "color": "#aaaaaa",
-            "width": "80px",
-            "display": "inline-block",
-            "fontSize": "12px",
-        }),
-        html.Span("Bid", style={
-            "color": "#aaaaaa",
-            "width": "100px",
-            "display": "inline-block",
-            "fontSize": "12px",
-        }),
-        html.Span("Ask", style={
-            "color": "#aaaaaa",
-            "width": "100px",
-            "display": "inline-block",
-            "fontSize": "12px",
-        }),
+        html.Span("Pair", style={"color": "#aaaaaa", "width": "80px",
+                                  "display": "inline-block", "fontSize": "12px"}),
+        html.Span("Bid", style={"color": "#aaaaaa", "width": "100px",
+                                 "display": "inline-block", "fontSize": "12px"}),
+        html.Span("Ask", style={"color": "#aaaaaa", "width": "100px",
+                                 "display": "inline-block", "fontSize": "12px"}),
     ], style={"paddingBottom": "8px", "borderBottom": "1px solid #16213e"})
 
     rows = []
     for instrument, price in prices.items():
         rows.append(html.Div([
-            html.Span(instrument, style={
-                "color": "#ffffff",
-                "fontWeight": "bold",
-                "width": "80px",
-                "display": "inline-block",
-            }),
-            html.Span(f"{price['bid']:.5f}", style={
-                "color": "#e94560",
-                "width": "100px",
-                "display": "inline-block",
-            }),
-            html.Span(f"{price['ask']:.5f}", style={
-                "color": "#4CAF50",
-                "width": "100px",
-                "display": "inline-block",
-            }),
-        ], style={
-            "padding": "8px 0",
-            "borderBottom": "1px solid #0f3460",
-            "fontSize": "14px",
-        }))
+            html.Span(instrument, style={"color": "#ffffff", "fontWeight": "bold",
+                                          "width": "80px", "display": "inline-block"}),
+            html.Span(f"{price['bid']:.5f}", style={"color": "#e94560", "width": "100px",
+                                                     "display": "inline-block"}),
+            html.Span(f"{price['ask']:.5f}", style={"color": "#4CAF50", "width": "100px",
+                                                     "display": "inline-block"}),
+        ], style={"padding": "8px 0", "borderBottom": "1px solid #0f3460",
+                  "fontSize": "14px"}))
 
     return [header] + rows
 
@@ -476,4 +392,5 @@ def create_dashboard() -> Dash:
         Configured Dash app ready to run.
     """
     _start_websocket_listener()
+    app.server.config["PROPAGATE_EXCEPTIONS"] = False
     return app

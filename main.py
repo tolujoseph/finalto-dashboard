@@ -12,6 +12,9 @@ Run with:
 """
 
 import asyncio
+import signal
+import multiprocessing
+import os
 import threading
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
@@ -19,27 +22,37 @@ from backend.streamer import MarketDataStreamer
 from backend.simulator import TradingSimulator
 from backend.book import Book
 from backend.server import create_server, update_prices
-from frontend.dashboard import create_dashboard
 from config import WEBSOCKET_HOST, WEBSOCKET_PORT, DASHBOARD_PORT
 
 
-async def _run_backend(book: Book):
+def _run_dashboard():
+    """
+    Runs the Plotly Dash dashboard in a completely separate process.
+    Isolated from the main process so Flask's signal handling
+    cannot interfere with our Ctrl+C handler.
+    """
+    from frontend.dashboard import create_dashboard
+    dashboard = create_dashboard()
+    print(f"[Main] Starting dashboard on http://localhost:{DASHBOARD_PORT}")
+    dashboard.run(
+        host="localhost",
+        port=DASHBOARD_PORT,
+        debug=False,
+        use_reloader=False,
+    )
+
+
+async def _run_backend(book: Book, shutdown_trigger, shutdown_event: asyncio.Event):
     """
     Runs the streamer, simulator and WebSocket server
     as concurrent async tasks.
-
-    Args:
-        book: The shared Book instance.
     """
-    # Single queue connecting streamer to simulator and server
     price_queue = asyncio.Queue()
 
-    # Initialise components
     streamer = MarketDataStreamer(price_queue)
-    simulator = TradingSimulator(book, price_queue)
+    simulator = TradingSimulator(book, price_queue, stop_event=shutdown_event)
     quart_app = create_server(book)
 
-    # Hypercorn config for Quart WebSocket server
     config = Config()
     config.bind = [f"{WEBSOCKET_HOST}:{WEBSOCKET_PORT}"]
     config.loglevel = "warning"
@@ -47,20 +60,19 @@ async def _run_backend(book: Book):
     print(f"[Main] Starting WebSocket server on ws://{WEBSOCKET_HOST}:{WEBSOCKET_PORT}")
 
     async def _streamer_with_server_update():
-        """
-        Wraps the streamer to also update the server's
-        current prices on every tick.
-        """
         queue_copy = asyncio.Queue()
 
         async def _forward():
-            """Forward prices from main queue to server and copy queue."""
-            while True:
-                prices = await price_queue.get()
-                await update_prices(prices)
-                await queue_copy.put(prices)
+            while not shutdown_event.is_set():
+                try:
+                    prices = await asyncio.wait_for(
+                        price_queue.get(), timeout=1.0
+                    )
+                    await update_prices(prices)
+                    await queue_copy.put(prices)
+                except asyncio.TimeoutError:
+                    continue
 
-        # Replace simulator's queue reference with copy queue
         simulator.price_queue = queue_copy
 
         await asyncio.gather(
@@ -68,27 +80,10 @@ async def _run_backend(book: Book):
             _forward(),
         )
 
-    # Run all backend components concurrently
     await asyncio.gather(
         _streamer_with_server_update(),
         simulator.run(),
-        serve(quart_app, config),
-    )
-
-
-def _run_dashboard():
-    """
-    Runs the Plotly Dash dashboard in a separate thread.
-
-    Dash has its own internal server (Flask based) so it
-    runs independently from the async backend.
-    """
-    dashboard = create_dashboard()
-    print(f"[Main] Starting dashboard on http://localhost:{DASHBOARD_PORT}")
-    dashboard.run(
-        host="localhost",
-        port=DASHBOARD_PORT,
-        debug=False,
+        serve(quart_app, config, shutdown_trigger=shutdown_trigger),
     )
 
 
@@ -96,25 +91,45 @@ def main():
     """
     Application entry point.
     """
-    import traceback
+    multiprocessing.freeze_support()
+
     print("[Main] Starting Finalto Risk Management Dashboard")
     print(f"[Main] Dashboard will be available at http://localhost:{DASHBOARD_PORT}")
+    print("[Main] Press Ctrl+C to stop")
 
     book = Book()
 
-    dashboard_thread = threading.Thread(
+    dashboard_process = multiprocessing.Process(
         target=_run_dashboard,
         daemon=True,
     )
-    dashboard_thread.start()
+    dashboard_process.start()
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    shutdown_event = asyncio.Event()
+
+    def _signal_handler(signum, frame):
+        print("\n[Main] Shutting down gracefully...")
+        loop.call_soon_threadsafe(shutdown_event.set)
+        # Force exit after 2 seconds in case hypercorn hangs
+        threading.Timer(2.0, lambda: os._exit(0)).start()
+
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
 
     try:
-        asyncio.run(_run_backend(book))
+        loop.run_until_complete(
+            _run_backend(book, shutdown_event.wait, shutdown_event)
+        )
     except KeyboardInterrupt:
         print("\n[Main] Shutting down gracefully...")
-    except Exception as e:
-        print(f"[Main] ERROR: {e}")
-        traceback.print_exc()
+    finally:
+        loop.close()
+        dashboard_process.terminate()
+        dashboard_process.join(timeout=3)
+        os._exit(0)
 
 
 if __name__ == "__main__":

@@ -33,16 +33,17 @@ class TradingSimulator:
     in which direction.
     """
 
-    def __init__(self, book: Book, price_queue: asyncio.Queue):
+    def __init__(self, book: Book, price_queue: asyncio.Queue,
+                 stop_event: asyncio.Event | None = None):
         """
         Args:
             book: The Book instance to send trades to.
             price_queue: Queue to read current prices from.
+            stop_event: Optional event that signals graceful shutdown.
         """
         self.book = book
         self.price_queue = price_queue
-
-        # Shared current prices updated from the streamer
+        self.stop_event = stop_event or asyncio.Event()
         self.current_prices = {}
 
     async def _price_listener(self):
@@ -52,12 +53,15 @@ class TradingSimulator:
         Runs as a background task so all client simulators
         always have access to the latest prices.
         """
-        while True:
-            prices = await self.price_queue.get()
-            self.current_prices = prices
-
-            # Update the book with new prices for PnL recalculation
-            self.book.update_prices(prices)
+        while not self.stop_event.is_set():
+            try:
+                prices = await asyncio.wait_for(
+                    self.price_queue.get(), timeout=1.0
+                )
+                self.current_prices = prices
+                self.book.update_prices(prices)
+            except asyncio.TimeoutError:
+                continue
 
     async def _simulate_client(self, client: str):
         """
@@ -71,42 +75,43 @@ class TradingSimulator:
         - Executes the trade at the current bid or ask price
 
         Args:
-            client: The client name e.g. "AlphaCapital"
+            client: The client name e.g. "ViltrumFinance"
         """
         print(f"[Simulator] Starting client: {client}")
 
-        while True:
-            # Wait random interval before next trade
+        while not self.stop_event.is_set():
             interval = random.uniform(TRADE_INTERVAL_MIN, TRADE_INTERVAL_MAX)
-            await asyncio.sleep(interval)
 
-            # Skip if we don't have prices yet
+            # Sleep in small chunks so we can respond to stop_event quickly
+            elapsed = 0.0
+            while elapsed < interval and not self.stop_event.is_set():
+                await asyncio.sleep(0.1)
+                elapsed += 0.1
+
+            if self.stop_event.is_set():
+                break
+
             if not self.current_prices:
                 continue
 
-            # Pick random instrument and direction
             instrument = random.choice(list(INSTRUMENTS.keys()))
             direction = random.choice([Direction.BUY, Direction.SELL])
 
-            # Pick random trade size as a multiple of TRADE_SIZE_STEP
             size_steps = random.randint(
                 MIN_TRADE_SIZE // TRADE_SIZE_STEP,
                 MAX_TRADE_SIZE // TRADE_SIZE_STEP
             )
             size = size_steps * TRADE_SIZE_STEP
 
-            # Get current price for chosen instrument
             price_data = self.current_prices.get(instrument)
             if not price_data:
                 continue
 
-            # Client buys at ask price, sells at bid price
             if direction == Direction.BUY:
                 trade_price = price_data.ask
             else:
                 trade_price = price_data.bid
 
-            # Create and validate the trade using Pydantic
             trade = Trade(
                 client=client,
                 instrument=instrument,
@@ -115,7 +120,6 @@ class TradingSimulator:
                 price=trade_price,
             )
 
-            # Send trade to the book
             self.book.process_trade(trade)
 
             print(
@@ -132,13 +136,10 @@ class TradingSimulator:
         """
         print(f"[Simulator] Starting {len(CLIENTS)} clients")
 
-        # Start price listener
         tasks = [asyncio.create_task(self._price_listener())]
 
-        # Start one trading task per client
         for client in CLIENTS:
             task = asyncio.create_task(self._simulate_client(client))
             tasks.append(task)
 
-        # Run all tasks concurrently
         await asyncio.gather(*tasks)

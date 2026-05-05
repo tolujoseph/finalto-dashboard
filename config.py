@@ -1,9 +1,7 @@
 """
-Central configuration for the Finalto risk management dashboard.
+The Control Panel for the Finalto Risk Management dashboard simulator.
 
-Modify these values to experiment with scale.
-For example, increasing CLIENTS or adding more INSTRUMENTS
-will increase the load on the system — useful for scalability testing.
+This is where all the paramters are defined so you can configure the system to operate the way you need.
 """
 
 # --- Instruments ---
@@ -19,11 +17,11 @@ INSTRUMENTS = {
 # --- Clients ---
 # Mock broker clients sending orders to Finalto
 CLIENTS = [
-    "AlphaCapital",
-    "BlueStoneFX",
-    "CrestMarkets",
-    "DeltaTrading",
-    "EagleFinance",
+    "ViltrumFinance",
+    "CadmusFX",
+    "ImmortalMarkets",
+    "JosephTrading",
+    "Covenant Capital",
 ]
 
 # --- Spread configuration ---

@@ -1,0 +1,161 @@
+# Finalto Risk Management Dashboard
+
+A real-time risk management dashboard that simulates market data streaming,
+client trading activity, and visualises key book management metrics including
+PnL, positions, client yield and spread revenue.
+
+---
+
+## Architecture
+
+Market Data Streamer (random walk prices)
+↓
+asyncio Queue
+↓
+Trading Simulator (mock clients) → Book (positions & PnL)
+↓
+Quart WebSocket Server
+↓
+Plotly Dash Dashboard
+
+**Components:**
+- `config.py` — central configuration for instruments, clients and timing
+- `backend/models.py` — Pydantic data models for all data structures
+- `backend/streamer.py` — async market data streamer using random walk
+- `backend/simulator.py` — mock client trading activity simulator
+- `backend/book.py` — real-time book management and PnL calculation
+- `backend/server.py` — Quart WebSocket server streaming data to dashboard
+- `frontend/dashboard.py` — Plotly Dash real-time dashboard
+
+---
+
+## Technology Choices
+
+| Technology | Reason |
+|---|---|
+| **Quart** | Async Flask replacement with native WebSocket support |
+| **Plotly Dash** | Professional interactive dashboards entirely in Python |
+| **Pydantic** | Data validation and modelling throughout the pipeline |
+| **asyncio** | Concurrent streamer, simulator and server in one process |
+| **uv** | Modern reproducible Python dependency management |
+| **websockets** | Real-time bidirectional data push to the dashboard |
+
+---
+
+## Prerequisites
+
+- Python 3.11+
+- uv (Python package manager)
+- Git
+
+## Installing uv
+
+**Windows:**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Restart your terminal after installation, then verify:
+```bash
+uv --version
+```
+
+**Mac/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Restart your terminal after installation.
+
+---
+
+## Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/finalto-dashboard.git
+cd finalto-dashboard
+
+# Install all dependencies
+uv sync
+
+# Activate the virtual environment
+# Windows:
+.venv\Scripts\activate
+# Mac/Linux:
+source .venv/bin/activate
+```
+
+---
+
+## Running the Application
+
+```bash
+python main.py
+```
+
+Then open your browser at:
+http://localhost:8050
+
+The dashboard will connect automatically and begin displaying live data.
+
+---
+
+## Dashboard Metrics
+
+- **Total PnL** — combined unrealised and realised profit/loss across all instruments
+- **Unrealised PnL** — open position PnL based on current market prices
+- **Realised PnL** — locked-in PnL from closed positions
+- **Spread Revenue** — cumulative revenue earned from bid/ask spread on all trades
+- **PnL Curve** — real-time chart of total PnL and spread revenue over time
+- **Net Positions** — Finalto's current long/short exposure per instrument
+- **Client Yield** — spread revenue contribution per client
+- **PnL Attribution** — PnL breakdown by instrument
+- **Live Prices** — current bid/ask for all instruments updating every second
+
+---
+
+## Configuration
+
+All configurable parameters live in `config.py`:
+
+```python
+# Scale up clients to stress test
+CLIENTS = ["ClientA", "ClientB", ...]  # add more clients
+
+# Adjust update frequency
+PRICE_UPDATE_INTERVAL = 1.0      # seconds between price updates
+TRADE_INTERVAL_MIN = 5.0         # minimum seconds between trades
+TRADE_INTERVAL_MAX = 15.0        # maximum seconds between trades
+
+# Control history window
+MAX_HISTORY_POINTS = 300         # 5 minutes at 1 update/second
+```
+
+---
+
+## Scalability Notes
+
+The application was designed with scalability in mind:
+
+- **Bounded memory** — `MAX_HISTORY_POINTS` caps the history buffer regardless of runtime
+- **Async pipeline** — all backend components run concurrently without blocking
+- **Throttling** — `DASHBOARD_UPDATE_INTERVAL` controls how frequently the dashboard refreshes independently of how fast prices generate internally
+- **10x scale test** — increasing `CLIENTS` to 50 and `PRICE_UPDATE_INTERVAL` to 0.1s runs stably without dashboard lag due to the WebSocket push architecture
+
+---
+
+## Simulation Details
+
+This is a mock simulation — no real market data is used.
+
+- Prices follow a random walk from realistic starting values
+- 5 mock broker clients trade randomly at configurable intervals
+- Finalto takes the opposite side of every client trade (client buys = Finalto short)
+- PnL updates in real time as prices move against or in favour of open positions
+
+---
+
+## Stopping the Application
+
+Press `Ctrl+C` in the terminal.
