@@ -1,8 +1,8 @@
 # Finalto Risk Management Dashboard
 
-A real-time risk management dashboard that simulates market data streaming,
-client trading activity, and visualises key book management metrics including
-PnL, positions, client yield and spread revenue.
+An MVP risk management dashboard visualizing most important metrics for book management such as PnL curve, monetization, client yield and PnL attribution.
+Prices are shown to a set of clients and a simulation of the clients' trading activities utilizing the bid/ask prices and their implications to our book and designed such that if the client buys, we are short and if the client sells, we are long.
+
 
 ---
 
@@ -10,7 +10,7 @@ PnL, positions, client yield and spread revenue.
 
 Data flows through the system in a single pipeline:
 
-1. **Market Data Streamer** generates random walk bid/ask prices for each instrument
+1. **Market Data Streamer** generates a random walk bid/ask prices for each instrument
 2. **asyncio Queue** passes prices to the simulator and book
 3. **Trading Simulator** runs five mock clients, each trading independently at random intervals
 4. **Book** processes each trade, tracking net positions and calculating PnL in real time
@@ -29,7 +29,7 @@ Data flows through the system in a single pipeline:
 
 ## Testing & Stress Testing
 
-The dashboard has been validated under a range of conditions including extended
+Experiments have been carried out under a range of conditions including extended
 runs, scaled client counts, high frequency trading, and browser reconnection.
 
 Full test results and methodology are documented in [TESTS.md](TESTS.md).
