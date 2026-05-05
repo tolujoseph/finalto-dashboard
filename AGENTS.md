@@ -1,13 +1,13 @@
 # AI Assistance
 
 This project was developed with the assistance of Claude (Anthropic)
-as a coding and architecture aid. used claude to help understand domain knowlegde and to help define random walks and movement patterns
+as a coding and architecture aid.
 
 ## What AI was used for
 
 - Architecture planning and design decisions
 - Explaining financial domain concepts (bid/ask, PnL, book management)
-- Code scaffolding and implementation guidance
+- Code structure and implementation guidance
 - Debugging runtime errors
 
 ## What was decided independently

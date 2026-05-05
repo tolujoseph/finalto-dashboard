@@ -8,15 +8,14 @@ PnL, positions, client yield and spread revenue.
 
 ## Architecture
 
-Market Data Streamer (random walk prices)
-↓
-asyncio Queue
-↓
-Trading Simulator (mock clients) → Book (positions & PnL)
-↓
-Quart WebSocket Server
-↓
-Plotly Dash Dashboard
+Data flows through the system in a single pipeline:
+
+1. **Market Data Streamer** generates random walk bid/ask prices for each instrument
+2. **asyncio Queue** passes prices to the simulator and book
+3. **Trading Simulator** runs five mock clients, each trading independently at random intervals
+4. **Book** processes each trade, tracking net positions and calculating PnL in real time
+5. **Quart WebSocket Server** broadcasts a snapshot of the book to connected dashboards every second
+6. **Plotly Dash Dashboard** receives snapshots and renders live charts and metrics in the browser
 
 **Components:**
 - `config.py` — central configuration for instruments, clients and timing
@@ -60,20 +59,13 @@ Restart your terminal after installation, then verify:
 uv --version
 ```
 
-**Mac/Linux:**
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Restart your terminal after installation.
-
 ---
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/finalto-dashboard.git
+git clone https://github.com/tolujoseph/finalto-dashboard.git
 cd finalto-dashboard
 
 # Install all dependencies
@@ -82,8 +74,7 @@ uv sync
 # Activate the virtual environment
 # Windows:
 .venv\Scripts\activate
-# Mac/Linux:
-source .venv/bin/activate
+
 ```
 
 ---
@@ -106,7 +97,7 @@ The dashboard will connect automatically and begin displaying live data.
 - **Total PnL** — combined unrealised and realised profit/loss across all instruments
 - **Unrealised PnL** — open position PnL based on current market prices
 - **Realised PnL** — locked-in PnL from closed positions
-- **Spread Revenue** — cumulative revenue earned from bid/ask spread on all trades
+- **Spread Revenue** — cummulative revenue earned from bid/ask spread on all trades
 - **PnL Curve** — real-time chart of total PnL and spread revenue over time
 - **Net Positions** — Finalto's current long/short exposure per instrument
 - **Client Yield** — spread revenue contribution per client
