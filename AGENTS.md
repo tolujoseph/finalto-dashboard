@@ -1,17 +1,16 @@
 # AI Assistance
 
-This project was developed with the assistance of Claude (Anthropic)
-as a coding and architecture aid.
+This project was developed with the assistance of Claude (Anthropic) as a domain knowledge, coding and debugging aid.
 
 ## What AI was used for
 
-- Architecture planning and design decisions
 - Explaining financial domain concepts (bid/ask, PnL, book management)
 - Code structure and implementation guidance
 - Debugging runtime errors
 
 ## What was decided independently
 
+- Architecture planning and design decisions
 - Technology choices were evaluated against the job description requirements
   (Quart, Pydantic, uv, WebSockets all explicitly match role requirements)
 - Financial simulation parameters were adjusted based on understanding
