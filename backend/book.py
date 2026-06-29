@@ -66,7 +66,30 @@ class Book:
             finalto_size = trade.size    # Finalto is long
 
         previous_size = position.net_size
+        previous_avg_entry_price = position.avg_entry_price
         new_size = previous_size + finalto_size
+
+        # --- Calculate realised PnL if position is reducing ---
+        # Must use the entry price from before this trade, since flips
+        # and exact closes overwrite avg_entry_price to the trade price
+        # below — using the new value here would always realise zero.
+        if previous_size != 0 and (
+            (previous_size > 0 and finalto_size < 0) or
+            (previous_size < 0 and finalto_size > 0)
+        ):
+            closed_size = min(abs(previous_size), abs(finalto_size))
+
+            if previous_size > 0:
+                realised = closed_size * (
+                    trade.price - previous_avg_entry_price
+                ) * 0.01
+            else:
+                realised = closed_size * (
+                    previous_avg_entry_price - trade.price
+                ) * 0.01
+
+            position.realised_pnl += realised
+            self.total_realised_pnl += realised
 
         # --- Update average entry price ---
         if previous_size == 0:
@@ -78,7 +101,7 @@ class Book:
             # Adding to existing position in same direction
             # Weighted average of old and new entry prices
             position.avg_entry_price = (
-                (abs(previous_size) * position.avg_entry_price +
+                (abs(previous_size) * previous_avg_entry_price +
                  abs(finalto_size) * trade.price) /
                 (abs(previous_size) + abs(finalto_size))
             )
@@ -86,25 +109,6 @@ class Book:
         elif abs(finalto_size) >= abs(previous_size):
             # Flipping position — new entry price is the trade price
             position.avg_entry_price = trade.price
-
-        # --- Calculate realised PnL if position is reducing ---
-        if previous_size != 0 and (
-            (previous_size > 0 and finalto_size < 0) or
-            (previous_size < 0 and finalto_size > 0)
-        ):
-            closed_size = min(abs(previous_size), abs(finalto_size))
-
-            if previous_size > 0:
-                realised = closed_size * (
-                    trade.price - position.avg_entry_price
-                ) * 0.01
-            else:
-                realised = closed_size * (
-                    position.avg_entry_price - trade.price
-                ) * 0.01
-
-            position.realised_pnl += realised
-            self.total_realised_pnl += realised
 
         # Update net size
         position.net_size = new_size
